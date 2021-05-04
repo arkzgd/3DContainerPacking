@@ -42,6 +42,9 @@ namespace CromulentBisgetti.ContainerPacking.Entities
 		[DataMember]
 		public List<Item> PackedItems { get; set; }
 
+		[DataMember]
+		public List<List<Item>> PackedItemsInLayers { get; set; }
+
 		/// <summary>
 		/// Gets or sets the elapsed pack time in milliseconds.
 		/// </summary>

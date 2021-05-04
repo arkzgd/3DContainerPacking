@@ -41,8 +41,8 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 			}
 
 			result.PackedItems = itemsPackedInOrder;
-			
 
+			result.PackedItemsInLayers = itemsPackedInLayers;
 
 			if (result.UnpackedItems.Count == 0)
 			{
@@ -57,6 +57,7 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 		#region Private Variables
 
 		private List<Item> itemsToPack;
+		private List<List<Item>> itemsPackedInLayers = new List<List<Item>>();
 		private List<Item> itemsPackedInOrder;
 		private List<Layer> layers;
 		private ContainerPackingResult result;
@@ -533,7 +534,7 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 
 			// The original code uses 1-based indexing everywhere. This fake entry is added to the beginning
 			// of the list to make that possible.
-			itemsToPack.Add(new Item(0, 0, 0, 0, 0));
+			itemsToPack.Add(new Item(0, "", 0, 0, 0, 0));
 
 			layers = new List<Layer>();
 			itemsToPackCount = 0;
@@ -542,14 +543,14 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 			{
 				for (int i = 1; i <= item.Quantity; i++)
 				{
-					Item newItem = new Item(item.ID, item.Dim1, item.Dim2, item.Dim3, item.Quantity);
+					Item newItem = new Item(item.ID, item.Name, item.Dim1, item.Dim2, item.Dim3, item.Quantity);
 					itemsToPack.Add(newItem);
 				}
 
 				itemsToPackCount += item.Quantity;
 			}
 
-			itemsToPack.Add(new Item(0, 0, 0, 0, 0));
+			itemsToPack.Add(new Item(0, "", 0, 0, 0, 0));
 
 			totalContainerVolume = container.Length * container.Height * container.Width;
 			totalItemVolume = 0.0M;
@@ -737,7 +738,7 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 		/// <summary>
 		/// Packs the boxes found and arranges all variables and records properly.
 		/// </summary>
-		private void PackLayer()
+		private void PackLayer(bool recordLayer = false, List<Item> currentLayer = null)
 		{
 			decimal lenx;
 			decimal lenz;
@@ -1027,7 +1028,7 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 					}
 				}
 
-				VolumeCheck();
+				VolumeCheck(recordLayer, currentLayer);
 			}
 		}
 
@@ -1093,7 +1094,8 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 			{
 				layerinlayer = 0;
 				layerDone = false;
-				PackLayer();
+				List<Item> currentLayer = new List<Item>();
+				PackLayer(true, currentLayer);
 				packedy = packedy + layerThickness;
 				remainpy = py - packedy;
 
@@ -1106,11 +1108,14 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 					remainpz = lilz;
 					layerThickness = layerinlayer;
 					layerDone = false;
-					PackLayer();
+					PackLayer(true, currentLayer);
 					packedy = prepackedy;
 					remainpy = preremainpy;
 					remainpz = pz;
 				}
+
+				Console.WriteLine("Currentlayer packed items: " + currentLayer.Count);
+				itemsPackedInLayers.Add(currentLayer);
 
 				if (!quit)
 				{
@@ -1122,7 +1127,7 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 		/// <summary>
 		/// After packing of each item, the 100% packing condition is checked.
 		/// </summary>
-		private void VolumeCheck()
+		private void VolumeCheck(bool recordLayer = false, List<Item> currentLayer = null)
 		{
 			itemsToPack[cboxi].IsPacked = true;
 			itemsToPack[cboxi].PackDimX = cboxx;
@@ -1130,6 +1135,8 @@ namespace CromulentBisgetti.ContainerPacking.Algorithms
 			itemsToPack[cboxi].PackDimZ = cboxz;
 			packedVolume = packedVolume + itemsToPack[cboxi].Volume;
 			packedItemCount++;
+			
+			if (recordLayer) currentLayer.Add(itemsToPack[cboxi]);
 
 			if (packingBest)
 			{
